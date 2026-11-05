@@ -19,6 +19,16 @@ npm run dev
 Open http://127.0.0.1:5174. The development server listens only on this computer,
 updates automatically when you save changes, and fails clearly if the port is
 already in use. Stop it with Ctrl+C. The `.nvmrc` records Node.js 24 for version managers.
+
+If your active Node version is older, you can run an isolated Node.js 24 runtime
+without changing your system's selected version (Windows PowerShell):
+
+```powershell
+npm.cmd exec --yes --package=node@24 -- npm run dev
+npm.cmd exec --yes --package=node@24 -- npm run build
+```
+
+The first invocation downloads and caches the runtime, so it needs npm registry access.
 The page works without credentials. Customize the content in `src/main.tsx` and
 the visual design in `src/styles.css`.
 
