@@ -9,17 +9,26 @@
   "scripts": {
     "dev": "vite --port 5174",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --port 4174"
+    "preview": "vite preview --port 4174",
+    "test:registration": "node scripts/test-registration.mjs",
+    "test:db": "node scripts/test-seasonal-db.mjs && node scripts/test-seasonal-throttling.mjs",
+    "test:emails": "node scripts/test-registration-emails.mjs && node scripts/test-seasonal-email-db.mjs",
+    "check:production": "node scripts/verify-production.mjs",
+    "check:secrets": "node scripts/scan-secrets.mjs",
+    "optimize:assets": "node scripts/optimize-assets.mjs"
   },
   "dependencies": {
+    "@fontsource/barlow-condensed": "5.3.0",
     "@supabase/supabase-js": "2.117.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
+    "sharp": "0.35.5",
     "typescript": "6.0.3",
     "vite": "8.3.3"
   }

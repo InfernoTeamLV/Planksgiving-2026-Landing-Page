@@ -3,8 +3,13 @@
 React + TypeScript + Vite starter for the Planksgiving 2026 landing page, ready for
 Netlify. Repository: https://github.com/InfernoTeamLV/Planksgiving-2026-Landing-Page
 
-The current page uses the TNT starter content. Event copy and branding can be
-customized in `src/main.tsx` and `src/styles.css`.
+The page follows the supplied Planksgiving wireframe, with separate Hero, About,
+Registration, and FAQ components in `src/main.tsx` and responsive styles
+in `src/styles.css`. Navigation and FAQ disclosures work without backend access.
+Registration validates contact details and age confirmation, then saves seasonal
+submissions to the TNT Supabase database. Member/guest prices switch locally. Payment
+is collected at the front desk. Saved registrations open a branded confirmation
+dialog and queue confirmation and staff notification emails.
 
 ## Run locally
 
@@ -12,7 +17,7 @@ Use Node.js 24 LTS, then run from this folder:
 
 ```powershell
 npm ci
-Copy-Item .env.example .env.local
+if (!(Test-Path .env.local)) { Copy-Item .env.example .env.local }
 npm run dev
 ```
 
@@ -36,17 +41,73 @@ the visual design in `src/styles.css`.
 
 Set these values in `.env.local`:
 
-- `VITE_APP_URL`: the absolute URL of your existing member app's login page.
-  Without it, the call to action scrolls to the member-access information section.
+- `VITE_APP_URL`: reserved for future member-app linking; currently unused.
 - `VITE_SUPABASE_URL`: your Supabase project URL.
 - `VITE_SUPABASE_PUBLISHABLE_KEY`: your browser-safe publishable key.
 
-`src/lib/supabase.ts` exports `getSupabase()` for future data or auth features. It
-initializes only when called and reports missing configuration. The marketing
-page currently makes no database requests, collects no data, and creates no auth
-accounts or database tables. Before adding public data access, enable row-level
-security and grant only the operations the feature needs. Never use a service-role
-or secret key in `VITE_` variables: these values are included in browser bundles.
+The current local configuration points to the existing TNT project
+`jngvmbwwrjlgglqsrggw`. Registration uses its Data API with a browser-safe key.
+Never use a service-role or secret key in `VITE_` variables: these values are
+included in browser bundles. Missing configuration fails clearly and does not
+report a successful registration.
+
+### Seasonal submissions
+
+- `public.tnt_seasonal_forms` holds event settings, prices and the registration cutoff.
+- `public.tnt_seasonal_form_submissions` stores contact details, self-reported
+  membership, age confirmation, creation time and a staff-managed status.
+- The event key is `planksgiving-2026`. Registration closes November 26, 2026,
+  at 7:00 AM Pacific. Only one registration per email per event is accepted.
+- Anonymous visitors can insert the permitted registration fields, but cannot read
+  submissions or set administrative status. Authenticated TNT admins with the existing
+  `app_metadata.role = admin` claim can read and manage submissions.
+- Membership is self-reported and does not grant account access or prove a paid membership.
+- The migration in `supabase/migrations/20261106211254_tnt_seasonal_form_submissions.sql`
+  is also mirrored in the parent TNT checkout. It was applied to TNT and recorded in
+  migration history on November 6, 2026.
+
+Staff can review submissions in the Supabase Table Editor. No new TNT dashboard
+screen has been added.
+
+### Registration emails
+
+The `seasonal-email-worker` Supabase Edge Function sends through Yahoo SMTP over
+TLS on port 465. The sender and staff recipient use server-only mailbox settings;
+the participant receives their own confirmation at their submitted address. Member
+and guest emails contain different entry and follow-up information.
+
+The two email migrations are mirrored in the parent TNT checkout and applied to
+TNT. A private transactional outbox queues both emails only after a successful
+registration. A database cron job checks every minute. Jobs are claimed exclusively;
+temporary SMTP rejections retry with backoff, permanent rejections stop, and
+interrupted sends are held as `uncertain` for staff review to avoid duplicates.
+`accepted` means Yahoo accepted the message, not proof of inbox delivery.
+
+Server-only Supabase Edge Function secrets:
+
+- `SEASONAL_SMTP_PASSWORD`: Yahoo-generated app password, configured directly in
+  Supabase Secrets. Never place it in `VITE_` variables or commit it.
+- `SEASONAL_SMTP_USER` and `SEASONAL_STAFF_EMAIL`: bare mailbox addresses, configured
+  directly in Supabase Secrets. They can use the same mailbox.
+- `SEASONAL_EMAIL_WORKER_SECRET`: dedicated random worker authentication key,
+  also stored in database Vault as `seasonal_email_worker_secret`.
+
+The worker is deployed with gateway JWT verification disabled because it checks
+its own private bearer key before accessing data. Public callers cannot process
+or inspect the queue. Its claim/finish RPCs are granted only to `service_role`.
+The scheduler is active; missing or invalid SMTP credentials leave registrations
+queued without consuming delivery attempts.
+
+Deploy updates with `supabase functions deploy seasonal-email-worker --project-ref
+jngvmbwwrjlgglqsrggw --use-api --workdir .`. In the shared TNT workspace,
+`node scripts/configure-seasonal-email-worker.mjs` configures/rotates the worker
+key without logging it, then invokes the worker (which can send pending mail).
+Do not run this helper during an active send. It does not change the Yahoo password.
+
+For manual tests, use an inbox you control: saving a form now sends real emails.
+Review failed/uncertain jobs in `private.tnt_seasonal_email_outbox` using privileged
+database access. Review Yahoo bounces in the sender mailbox. Never blindly retry
+an `uncertain` job; first confirm the message was not already sent.
 
 ## Build and deploy to Netlify
 
@@ -60,8 +121,11 @@ empty** (the app lives at the repository root), set the build command to
 `npm run build`, and publish directory to `dist`. Netlify will use `netlify.toml`,
 including SPA routing and security headers.
 
-Add the three environment variables above in the Netlify project settings with
-Builds scope, then deploy. Any change to these variables requires a fresh build
+Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the Netlify project
+settings with Builds scope, then deploy. `VITE_APP_URL` is optional and unused.
+Production builds intentionally fail if the TNT URL or browser-safe key is missing
+or a privileged key is supplied. `.env.local` is ignored by Git and is not uploaded
+to Netlify. Any change to these variables requires a fresh build
 and deployment. Use a separate Supabase project for development if adding write
 operations. If you add Supabase Auth, configure its Site URL and allowed redirect
 URLs for each environment before implementing the auth flow.
@@ -72,13 +136,81 @@ time; they are not claimed to be the latest registry releases.
 ## Local testing workflow
 
 1. Use `npm run dev` while editing the page. Check desktop and narrow mobile widths,
-   the navigation menu, keyboard focus, and the member-access links.
+   navigation links, keyboard focus, and the mobile Register button.
 2. Run `npm run build` to check TypeScript and produce the production files.
 3. Run `npm run preview` and open http://127.0.0.1:4174 to test the production build.
    This previews static output; Netlify headers and redirects apply after deployment.
-4. Keep `.env.local` private. The supplied local file is intentionally blank and
-   does not connect to the existing TNT production database. Add a development
-   Supabase project's public values when you implement a backend feature.
+4. Keep `.env.local` private. This checkout now saves real submissions to TNT.
+   Use a test inbox you control for delivery tests and remove only those test rows afterward.
+5. `npm run test:registration` checks normalization, validation, duplicate/network
+   errors and confirmed-success handling. `npm run test:db` uses an in-memory
+   database to check constraints, public privacy, admin access and event closure;
+   it does not write to TNT. `npm run test:emails` checks email wording, HTML escaping,
+   recipient routing, queue privacy, claims, retries and interrupted sends without
+   connecting to Yahoo or writing to TNT.
+
+### Section review
+
+- `/#about`: compare the community introduction with the supplied reference.
+- `/#registration`: review free member entry, $45 guest entry, required fields,
+  age confirmation, inline errors and the pending/success states. A successful
+  submission now writes to TNT.
+- `/#faq`: open and close each answer, including with keyboard Enter/Space.
+- At mobile widths, check that the header shows only Register, that it jumps to
+  the form, and that the hero's date, time and location share one row without
+  horizontal overflow. Desktop retains About, FAQ and Register links.
+
+Production images live in `public/images/` as optimized WebP assets. The hero uses
+the supplied turkey animation with all 14 frames and original timing preserved.
+The header uses the transparent Inferno logo. Original artwork and unused design
+alternatives are retained in `design-assets/`, outside the public deployment.
+Run `npm run optimize:assets` to reproduce optimized images. The three page images
+total 610 KB, down from 4.49 MB (about 86% smaller). Fonts are bundled locally using
+the Latin subset of `@fontsource/barlow-condensed`. The tab title is Inferno
+Planksgiving 2026, with the turkey-over-circle-logo favicon.
+
+### Production review — November 6, 2026
+
+`npm run build`, registration/database/email tests, `npm run check:production`,
+and the dependency audit passed. Desktop and 390px mobile production previews
+loaded the logo, animated mascot, autumn background and fonts with the same
+common security headers as Netlify, without console errors or horizontal overflow.
+The logo links to Inferno's home page; the FAQ waiver opens the supplied intake
+form in a new tab with `noopener noreferrer`. Both URLs returned HTTP 200.
+
+Security headers restrict scripts, styles and images to this site and database
+connections to the TNT project. Source maps and private credentials are excluded
+from deployment. `npm run check:production` verifies bundled links, image/font
+references, hidden/source artifacts and privileged-key exposure. To run read-only
+live permission and rejected-input checks with the ignored local config, use
+`node scripts/check-live-registration-security.mjs` (no saved registrations or emails).
+
+Database-enforced submission limits are 3 per phone per hour, 30 per event per
+minute and 200 per event per hour. Rejected attempts do not queue emails. These
+limits curb bursts; they do not verify identity or replace CAPTCHA if sustained
+abuse becomes an issue. The migration is applied and mirrored in the TNT checkout.
+
+The Supabase security advisor reports no seasonal-form findings. It still flags
+TNT's existing disabled leaked-password protection setting. The dashboard confirms
+that this feature requires Pro or above, while the project is on Free. This landing
+page does not use password authentication; no billing or TNT-wide Auth settings
+were changed.
+
+The final security review also hardened email recipients in browser validation,
+database constraints and the mail worker. Address lists, display-name syntax and
+header injection are rejected, and SMTP receives one structured recipient and an
+explicit single-recipient envelope. Mailbox addresses now live in server-only
+settings instead of source or test fixtures. Regression checks cover these inputs.
+Both the npm website dependencies and all 90 packages in the Deno lockfile had
+zero known advisories at review time. `npm run check:secrets` scans working files
+and reachable Git history without displaying credential values; the scan was clean.
+EXIF/XMP metadata was also removed from the archived original logo; the scanner
+checks image metadata before future pushes.
+
+The finished static build is approximately 1 MB before HTTP compression. Original
+multi-megabyte design files and Supabase source/configuration are not in `dist`.
+Netlify's actual deployed headers, environment values and CDN behavior must still
+be verified after a deploy; a local production preview cannot establish those.
 
 This is a normal Git checkout with `origin` pointing to the Planksgiving repo.
 For future changes, create a branch with `git switch -c codex/your-change`, commit

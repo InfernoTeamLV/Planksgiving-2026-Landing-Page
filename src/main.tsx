@@ -1,233 +1,640 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { submitRegistration, validateRegistration } from "./lib/registration";
+import type { RegistrationErrors } from "./lib/registration";
+import type { FormEvent } from "react";
+import "@fontsource/barlow-condensed/latin-800-italic.css";
 import "./styles.css";
 
-function getAppUrl() {
-  const value = import.meta.env.VITE_APP_URL?.trim();
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol) ? url.href : null;
-  } catch {
-    return null;
-  }
-}
-
-const appUrl = getAppUrl();
-const features = [
+const faqs = [
+  ["Is there an age requirement?", "Yes, participants must be 18 years or older."],
   [
-    "01",
-    "Show up with a plan.",
-    "Find your daily programming in one place. Spend less time figuring out what’s next and more time moving."
+    "Do I need to complete a waiver?",
+    <>
+      Yes, non-members need waivers.{" "}
+      <a
+        href="https://infernopilates.com/client-intake-form"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Fill out your waiver in advance.
+      </a>
+    </>
   ],
   [
-    "02",
-    "Keep your progress close.",
-    "Record your performance and revisit your personal bests. Build a picture of your training, session by session."
+    "How do non-members pay?",
+    "Non-members pay upon arrival. The $45 entry includes the Planksgiving challenge and the 7:30 IHP class."
   ],
   [
-    "03",
-    "Stay connected to your coach.",
-    "A shared home for members and coaches, with training and member information right where it belongs."
+    "Will someone contact me after I register?",
+    "Members will not be contacted after registering. Non-members: upon submitting a registration form, a team member will reach out to you shortly."
   ]
 ];
 
+function Arrow() {
+  return (
+    <span aria-hidden="true" className="arrow">
+      ⟶
+    </span>
+  );
+}
+
+function NoticeIcon() {
+  return (
+    <svg
+      className="notice-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v6" strokeLinecap="round" />
+      <circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function EventIcon({ type }: { type: "calendar" | "clock" | "location" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {type === "calendar" ? (
+        <>
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M7 3v5M17 3v5M3 10h18M8 14h3v4" />
+        </>
+      ) : type === "clock" ? (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 6v6l4 2" />
+        </>
+      ) : (
+        <>
+          <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function Header() {
+  return (
+    <header className="header content">
+      <a
+        className="brand"
+        href="https://infernopilates.com/home-2509"
+        aria-label="Inferno Hot Pilates home"
+      >
+        <img
+          src="/images/inferno-logo-transparent.webp"
+          alt=""
+          width="104"
+          height="104"
+        />
+      </a>
+      <nav
+        id="navigation"
+        className="navigation"
+        aria-label="Main navigation"
+      >
+        <a href="#about">About</a>
+        <a href="#faq">FAQ</a>
+        <a className="button small" href="#registration">
+          Register
+        </a>
+      </nav>
+    </header>
+  );
+}
+
+function Hero() {
+  const [imageFailed, setImageFailed] = useState(false);
+  return (
+    <section className="hero" aria-labelledby="hero-title">
+      <div className="hero-copy">
+        <div className="hero-message">
+          <p className="eyebrow hero-eyebrow">
+            A COMMUNITY PLANK CHALLENGE <span />
+          </p>
+          <h1 id="hero-title">PLANKSGIVING.</h1>
+          <h2>HOW LONG CAN YOU HOLD?</h2>
+          <p className="hero-intro">
+            One plank. One challenge. See what you’re capable of.
+          </p>
+        </div>
+        <div className="event-facts">
+          <div>
+            <EventIcon type="calendar" />
+            <time dateTime="2026-11-26T07:00:00-08:00">
+              Thursday,
+              <br />
+              <span className="event-date-full">November 26, 2026</span>
+              <span className="event-date-compact">Nov 26, 2026</span>
+            </time>
+          </div>
+          <div>
+            <EventIcon type="clock" />
+            <span>7:00 AM</span>
+          </div>
+          <div>
+            <EventIcon type="location" />
+            <span>
+              Inferno Lobby ·<br />
+              Las Vegas
+            </span>
+          </div>
+        </div>
+        <div className="hero-actions">
+          <a className="button" href="#registration">
+            COUNT ME IN <Arrow />
+          </a>
+        </div>
+      </div>
+      <div className="hero-art">
+        {imageFailed ? (
+          <div className="mascot-fallback">
+            ONE PLANK.
+            <br />
+            ALL HEART.
+          </div>
+        ) : (
+          <img
+            className="turkey"
+            src="/images/planksgiving-turkey.webp"
+            alt="A determined turkey in a teal headband holding a forearm plank"
+            width="444"
+            height="444"
+            fetchPriority="high"
+            onError={() => setImageFailed(true)}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function About() {
+  return (
+    <section id="about" className="about" aria-labelledby="about-title">
+      <div className="about-inner content">
+        <div className="about-heading">
+          <p className="eyebrow">THE CHALLENGE</p>
+          <h2 id="about-title" className="display">
+            STAY LOW.
+            <br />
+            HOLD STRONG.
+          </h2>
+          <span className="heading-rule" />
+        </div>
+        <div className="about-copy">
+          <p>
+            Planksgiving is your chance to put your strength and endurance to the test.
+          </p>
+          <p>
+            Whether you’re here to challenge yourself or see how long you can last, it’s
+            all about personal progress, showing up, and being part of the Inferno
+            community.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RegistrationConfirmation({
+  membership,
+  onClose
+}: {
+  membership: "member" | "guest";
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+  return (
+    <dialog
+      ref={dialog}
+      className="registration-confirmation"
+      aria-labelledby="confirmation-title"
+      aria-describedby="confirmation-description"
+      onClose={onClose}
+    >
+      <button
+        type="button"
+        className="confirmation-close"
+        aria-label="Close confirmation"
+        onClick={() => dialog.current?.close()}
+      >
+        ×
+      </button>
+      <div className="confirmation-check" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m6 12 4 4 8-8" />
+        </svg>
+      </div>
+      <p className="eyebrow">YOU’RE IN.</p>
+      <h2 id="confirmation-title" className="display">
+        ONE COMMUNITY.
+        <br />
+        ONE STRONG HOLD.
+      </h2>
+      <p id="confirmation-description">
+        Your Planksgiving registration is saved. Bring your energy, find your spot, and
+        see how long you can hold.
+      </p>
+      <div className="confirmation-event">
+        <EventIcon type="calendar" />
+        <div>
+          <strong>Thursday, November 26 · 7:00 AM</strong>
+          <span>Inferno Lobby · Las Vegas</span>
+        </div>
+      </div>
+      <p className="confirmation-entry">
+        {membership === "member"
+          ? "Your member entry is complimentary. We’ll see you there."
+          : "Your $45 guest entry is payable at the front desk upon arrival. Our team will reach out to finalize your class spot."}
+      </p>
+      <button type="button" className="button" onClick={() => dialog.current?.close()}>
+        LET’S HOLD STRONG
+      </button>
+      <p className="confirmation-motto">BURN. LOVE. TRANSFORM.</p>
+    </dialog>
+  );
+}
+
+function Registration() {
+  const [membership, setMembership] = useState<"member" | "guest">("member");
+  const [errors, setErrors] = useState<RegistrationErrors>({});
+  const [submissionError, setSubmissionError] = useState("");
+  const [pending, setPending] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const fieldIds = {
+    fullName: "full-name",
+    email: "email",
+    phone: "phone",
+    membership: "member-choice",
+    ageConfirmed: "age-confirmation"
+  };
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    const fields = new FormData(event.currentTarget);
+    const { errors: nextErrors, value } = validateRegistration({
+      fullName: String(fields.get("fullName") ?? ""),
+      email: String(fields.get("email") ?? ""),
+      phone: String(fields.get("phone") ?? ""),
+      membership,
+      ageConfirmed: fields.get("ageConfirmed") === "on"
+    });
+    setErrors(nextErrors);
+    setSubmissionError("");
+    if (Object.keys(nextErrors).length) {
+      const ids = {
+        fullName: "full-name",
+        email: "email",
+        phone: "phone",
+        membership: "member-choice",
+        ageConfirmed: "age-confirmation"
+      };
+      document
+        .getElementById(ids[Object.keys(nextErrors)[0] as keyof typeof ids])
+        ?.focus();
+      return;
+    }
+    setPending(true);
+    try {
+      const projectUrl = import.meta.env.VITE_SUPABASE_URL?.trim().replace(/\/$/, "");
+      const publicKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+      await submitRegistration(
+        value,
+        projectUrl && publicKey
+          ? `${projectUrl}/rest/v1/tnt_seasonal_form_submissions`
+          : undefined,
+        fetch,
+        publicKey
+      );
+      setComplete(true);
+      setShowConfirmation(true);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+  return (
+    <section
+      id="registration"
+      className="registration"
+      aria-labelledby="registration-title"
+    >
+      <div className="registration-grid content">
+        <div className="registration-copy">
+          <p className="eyebrow">REGISTRATION</p>
+          <h2 id="registration-title" className="display">
+            JOIN THE CHALLENGE.
+          </h2>
+          <p className="registration-intro">One community. One challenge. One Hold.</p>
+        </div>
+        {complete ? (
+          <div className="registration-preview registration-success" role="status">
+            <p className="eyebrow">YOU’RE REGISTERED</p>
+            <h3>See you at Planksgiving.</h3>
+            <p>Your registration has been saved for November 26 at 7:00 AM.</p>
+            <p>
+              {membership === "guest"
+                ? "Please pay $45 at the front desk upon arrival. Our team will reach out to finalize your class spot."
+                : "Your entry is complimentary. We look forward to seeing you there."}
+            </p>
+            <button
+              type="button"
+              className="button confirmation-reopen"
+              onClick={() => setShowConfirmation(true)}
+            >
+              VIEW CONFIRMATION
+            </button>
+          </div>
+        ) : (
+          <form
+            className="registration-preview"
+            aria-labelledby="registration-title"
+            aria-busy={pending}
+            noValidate
+            onSubmit={handleSubmit}
+            onChange={(event) => {
+              setSubmissionError("");
+              if (!(event.target instanceof HTMLInputElement)) return;
+              const name = event.target.name as keyof RegistrationErrors;
+              if (errors[name]) {
+                const fields = new FormData(event.currentTarget);
+                const checked = validateRegistration({
+                  fullName: String(fields.get("fullName") ?? ""),
+                  email: String(fields.get("email") ?? ""),
+                  phone: String(fields.get("phone") ?? ""),
+                  membership,
+                  ageConfirmed: fields.get("ageConfirmed") === "on"
+                });
+                setErrors((previous) => ({
+                  ...previous,
+                  [name]: checked.errors[name]
+                }));
+              }
+            }}
+          >
+            {(Object.values(errors).some(Boolean) || submissionError) && (
+              <div className="validation-notice" role="alert">
+                <NoticeIcon />
+                <div>
+                  <strong>A quick check</strong>
+                  {Object.values(errors).some(Boolean) && (
+                    <>
+                      <p>Please check the following before registering:</p>
+                      <ul>
+                        {Object.entries(errors)
+                          .filter(([, message]) => Boolean(message))
+                          .map(([field, message]) => (
+                            <li key={field} id={`${field}-error`}>
+                              <a
+                                href={`#${fieldIds[field as keyof typeof fieldIds]}`}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  document
+                                    .getElementById(
+                                      fieldIds[field as keyof typeof fieldIds]
+                                    )
+                                    ?.focus();
+                                }}
+                              >
+                                {message}
+                              </a>
+                            </li>
+                          ))}
+                      </ul>
+                    </>
+                  )}
+                  {submissionError && <p>{submissionError}</p>}
+                </div>
+              </div>
+            )}
+            <fieldset disabled={pending}>
+              <legend className="sr-only">Register for Planksgiving</legend>
+              <label htmlFor="full-name">
+                Full Name <span>*</span>
+              </label>
+              <input
+                id="full-name"
+                name="fullName"
+                required
+                maxLength={100}
+                aria-invalid={Boolean(errors.fullName)}
+                aria-describedby={errors.fullName ? "fullName-error" : undefined}
+                type="text"
+                placeholder="Enter your full name"
+                autoComplete="name"
+              />
+              <label htmlFor="email">
+                Email Address <span>*</span>
+              </label>
+              <input
+                id="email"
+                name="email"
+                required
+                maxLength={254}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+              <label htmlFor="phone">
+                Phone Number <span>*</span>
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                required
+                maxLength={40}
+                aria-invalid={Boolean(errors.phone)}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
+                type="tel"
+                placeholder="(702) 555-0123"
+                autoComplete="tel"
+              />
+              <fieldset className="member-options">
+                <legend>
+                  Are you an Inferno member? <span>*</span>
+                </legend>
+                <label>
+                  <input
+                    type="radio"
+                    id="member-choice"
+                    name="membership"
+                    value="member"
+                    checked={membership === "member"}
+                    onChange={() => setMembership("member")}
+                    aria-controls="entry-summary"
+                  />
+                  Yes, I’m an Inferno member
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="membership"
+                    value="guest"
+                    checked={membership === "guest"}
+                    onChange={() => setMembership("guest")}
+                    aria-controls="entry-summary"
+                  />
+                  No, I’m joining as a guest
+                </label>
+              </fieldset>
+              <div
+                id="entry-summary"
+                className="entry-summary"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                hidden={!membership}
+              >
+                {membership && (
+                  <div className="price-card" key={membership}>
+                    <div>
+                      <h3>
+                        {membership === "member" ? "MEMBER ENTRY" : "GUEST ENTRY"}
+                      </h3>
+                      <strong>{membership === "member" ? "FREE" : "$45"}</strong>
+                    </div>
+                    <p>
+                      {membership === "member"
+                        ? "Your Planksgiving registration is complimentary. Come ready to hold strong with your Inferno community."
+                        : "Includes the Planksgiving challenge, an IHP class, and a TNT session. Pay at the front desk upon arrival. Our team will reach out to finalize your class spot."}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <label className="age-option">
+                <input
+                  type="checkbox"
+                  name="ageConfirmed"
+                  id="age-confirmation"
+                  required
+                  aria-invalid={Boolean(errors.ageConfirmed)}
+                  aria-describedby={
+                    errors.ageConfirmed ? "ageConfirmed-error" : undefined
+                  }
+                />
+                I confirm that I am 18 years of age or older. <span>*</span>
+              </label>
+              <button
+                type="submit"
+                className="button registration-button"
+                disabled={pending}
+              >
+                {pending ? "REGISTERING…" : "REGISTER FOR PLANKSGIVING"} <Arrow />
+              </button>
+            </fieldset>
+          </form>
+        )}
+      </div>
+      {showConfirmation && (
+        <RegistrationConfirmation
+          membership={membership}
+          onClose={() => setShowConfirmation(false)}
+        />
+      )}
+    </section>
+  );
+}
+
+function FAQ() {
+  return (
+    <section id="faq" className="faq" aria-labelledby="faq-title">
+      <div className="faq-inner content">
+        <div className="faq-heading">
+          <p className="eyebrow">YOUR QUESTIONS, ANSWERED</p>
+          <h2 id="faq-title" className="display">
+            FAQ
+          </h2>
+          <span className="heading-rule" />
+          <p className="faq-intro">
+            Answers to common questions about joining Planksgiving.
+          </p>
+        </div>
+        <div className="faq-list">
+          {faqs.map(([question, answer], index) => (
+            <details key={index}>
+              <summary>
+                {question}
+                <span className="faq-symbol" aria-hidden="true" />
+              </summary>
+              <p>{answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function App() {
-  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <header className="header wrap">
-        <a className="brand" href="#" aria-label="TNT home">
-          <span className="brand-mark">
-            tnt<span>↗</span>
-          </span>
-          <span className="brand-caption">
-            BY INFERNO
-            <br />
-            HOT PILATES
-          </span>
-        </a>
-        <button
-          className="menu-toggle"
-          aria-expanded={menuOpen}
-          aria-controls="navigation"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? "Close" : "Menu"}
-        </button>
-        <nav
-          id="navigation"
-          className={menuOpen ? "navigation open" : "navigation"}
-          aria-label="Main navigation"
-          onClick={() => setMenuOpen(false)}
-        >
-          <a href="#approach">The approach</a>
-          <a href="#training">Your training</a>
-          <a className="nav-cta" href={appUrl ?? "#get-started"}>
-            Member access <span aria-hidden="true">↗</span>
-          </a>
-        </nav>
-      </header>
       <main id="main">
-        <section className="hero wrap" aria-labelledby="hero-title">
-          <div className="hero-copy">
-            <p className="eyebrow">
-              <span className="dot" /> A LITTLE INTENTION. A LOT OF POTENTIAL.
-            </p>
-            <h1 id="hero-title">
-              Make every
-              <br />
-              session <em>count.</em>
-            </h1>
-            <p className="intro">
-              Your training deserves a home. Meet TNT: daily programming, personal
-              progress, and the motivation to keep coming back.
-            </p>
-            <a className="button" href={appUrl ?? "#get-started"}>
-              Find your momentum <span aria-hidden="true">↗</span>
-            </a>
-            <p className="hero-note">Built for the way you train.</p>
-          </div>
-          <div
-            className="training-art"
-            role="img"
-            aria-label="Illustration of a training journal with workout and progress cards"
-          >
-            <div className="art-grid" />
-            <span className="art-label">THE WORK ADDS UP.</span>
-            <span className="giant-type" aria-hidden="true">
-              GO
-              <br />
-              <i>ALL IN.</i>
-            </span>
-            <div className="workout-card">
-              <div className="card-top">
-                <span>YOUR TRAINING JOURNAL</span>
-                <span aria-hidden="true">↗</span>
-              </div>
-              <h2>
-                One session
-                <br />
-                at a time.
-              </h2>
-              <div className="workout-row">
-                <span className="check">✓</span>
-                <span>Follow your programming</span>
-              </div>
-              <div className="workout-row">
-                <span className="check">✓</span>
-                <span>Log your performance</span>
-              </div>
-              <div className="workout-row">
-                <span className="check">✓</span>
-                <span>See how far you’ve come</span>
-              </div>
-              <div className="card-bottom">
-                A STRONGER ROUTINE STARTS HERE <span>→</span>
-              </div>
-            </div>
-            <div className="progress-tag">
-              <span aria-hidden="true">↗</span>
-              <div>
-                YOUR PACE.
-                <br />
-                <strong>YOUR PROGRESS.</strong>
-              </div>
-            </div>
-            <span className="art-footnote">
-              A LOOK AT WHAT’S POSSIBLE · ILLUSTRATIVE PREVIEW
-            </span>
-          </div>
-        </section>
-        <div className="ticker" aria-hidden="true">
-          <span>MOVE WITH PURPOSE</span>
-          <b>✳</b>
-          <span>BUILD YOUR MOMENTUM</span>
-          <b>✳</b>
-          <span>MAKE IT YOURS</span>
-          <b>✳</b>
-          <span>MOVE WITH PURPOSE</span>
+        <div className="opening">
+          <Header />
+          <Hero />
         </div>
-        <section id="approach" className="approach wrap">
-          <p className="eyebrow">LESS FRICTION. MORE FOCUS.</p>
-          <div className="section-heading">
-            <h2>
-              A stronger routine.
+        <Registration />
+        <About />
+        <FAQ />
+        <section className="closing" aria-labelledby="closing-title">
+          <div className="content">
+            <h2 id="closing-title" className="display">
+              A STRONGER COMMUNITY
               <br />
-              From the inside out.
+              HOLDS TOGETHER.
             </h2>
-            <p>
-              Good training is more than the work you put in. It’s knowing where you’re
-              going, seeing what’s changing, and having support along the way.
-            </p>
-          </div>
-          <div className="features">
-            {features.map(([number, title, description]) => (
-              <article key={number}>
-                <span className="feature-number">/{number}</span>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-        <section id="training" className="training wrap">
-          <div>
-            <p className="eyebrow">A PLACE FOR YOUR PROGRESS</p>
-            <h2>
-              Your next session.
-              <br />
-              <em>Your bigger picture.</em>
-            </h2>
-          </div>
-          <div className="training-details">
-            <p>
-              From daily programming to variation-specific performance, TNT brings the
-              details of your training together.
-            </p>
-            <ul>
-              <li>
-                Daily workouts and programming <span>↗</span>
-              </li>
-              <li>
-                Personal bests and progress <span>↗</span>
-              </li>
-              <li>
-                Dedicated member and coach workspaces <span>↗</span>
-              </li>
-            </ul>
-          </div>
-        </section>
-        <section id="get-started" className="start wrap">
-          <p className="eyebrow">YOUR NEXT CHAPTER</p>
-          <h2>
-            Bring the effort.
-            <br />
-            We’ll bring the structure.
-          </h2>
-          {appUrl ? (
-            <a className="button" href={appUrl}>
-              Open the TNT app <span aria-hidden="true">↗</span>
+            <a className="button" href="#registration">
+              COUNT ME IN <Arrow />
             </a>
-          ) : (
-            <p className="access-note">
-              Member access will be linked here when this page launches.
-              <br />
-              Already training with Inferno? Ask your coach for your app link.
+            <p className="closing-motto">
+              <span />
+              BURN. LOVE. TRANSFORM.
+              <span />
             </p>
-          )}
+          </div>
         </section>
       </main>
-      <footer className="footer wrap">
-        <a className="brand-mark" href="#" aria-label="Back to top">
-          tnt<span>↗</span>
-        </a>
-        <p>Inferno Hot Pilates · Training with intention.</p>
-        <span>© {new Date().getFullYear()} TNT</span>
-      </footer>
     </>
   );
 }

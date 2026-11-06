@@ -1,0 +1,5 @@
+project_id = "tnt-seasonal-landing"
+
+[functions.seasonal-email-worker]
+# Authenticated internally with a dedicated, randomly generated worker secret.
+verify_jwt = false
