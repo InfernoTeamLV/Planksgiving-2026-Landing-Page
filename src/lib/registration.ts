@@ -2,7 +2,6 @@ export type Registration = {
   fullName: string;
   email: string;
   phone: string;
-  membership: "member" | "guest";
   ageConfirmed: boolean;
 };
 export type RegistrationErrors = Partial<Record<keyof Registration, string>>;
@@ -42,8 +41,6 @@ export function validateRegistration(input: Registration) {
     errors.phone = rawPhone
       ? "Check your phone number: use 10 digits, or include + and your country code."
       : "Enter your phone number.";
-  if (!["member", "guest"].includes(input.membership))
-    errors.membership = "Choose member or guest.";
   if (input.ageConfirmed !== true)
     errors.ageConfirmed = "Confirm that you are 18 years of age or older.";
   return { errors, value: { ...input, fullName, email, phone } };
@@ -73,7 +70,6 @@ export async function submitRegistration(
         full_name: value.fullName,
         email: value.email,
         phone: value.phone,
-        membership: value.membership,
         age_confirmed: value.ageConfirmed
       }),
       signal: AbortSignal.timeout(15000)

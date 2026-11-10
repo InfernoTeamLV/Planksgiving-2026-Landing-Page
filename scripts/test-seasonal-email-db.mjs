@@ -10,21 +10,23 @@ try {
     create function auth.jwt() returns jsonb language sql stable as $$select '{}'::jsonb$$;`);
   for (const file of [
     "20261106211254_tnt_seasonal_form_submissions.sql",
-    "20261106220134_tnt_seasonal_email_outbox.sql"
+    "20261106220134_tnt_seasonal_email_outbox.sql",
+    "20261110000255_seasonal_optional_membership.sql"
   ]) {
     await db.exec(
       await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8")
     );
   }
   await db.exec(`update public.tnt_seasonal_forms set closes_at=now()+interval '1 day'; set role anon;
-    insert into public.tnt_seasonal_form_submissions(form_key,full_name,email,phone,membership,age_confirmed)
-    values ('planksgiving-2026','Queue Test','queue@example.invalid','+17025550123','member',true);`);
+    insert into public.tnt_seasonal_form_submissions(form_key,full_name,email,phone,age_confirmed)
+    values ('planksgiving-2026','Queue Test','queue@example.invalid','+17025550123',true);`);
   await assert.rejects(() => query("select * from private.tnt_seasonal_email_outbox"));
   await assert.rejects(() => query("select public.claim_seasonal_registration_mail()"));
   await db.exec("reset role;set role service_role;");
   const jobs = (await query("select public.claim_seasonal_registration_mail() as jobs"))
     .rows[0].jobs;
   assert.equal(jobs.length, 2);
+  assert.ok(jobs.every((job) => job.registration.membership === null));
   assert.deepEqual(jobs.map((j) => j.kind).sort(), ["client", "staff"]);
   assert.equal(
     (await query("select public.claim_seasonal_registration_mail() as jobs")).rows[0]

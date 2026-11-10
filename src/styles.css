@@ -1355,6 +1355,25 @@ details[open] .faq-symbol {
   background: #fff8eff5;
   box-shadow: 0 14px 48px #7046261a;
 }
+#registration form.registration-preview {
+  width: min(100%, 500px);
+  min-height: 560px;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px 38px;
+}
+#registration form.registration-preview > fieldset > label {
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+#registration form.registration-preview input:not([type="radio"]):not([type="checkbox"]) {
+  height: 50px;
+}
+#registration form.registration-preview > fieldset > .age-option {
+  margin-block: 24px;
+}
 #registration .preview-label {
   font-size: 13px;
   letter-spacing: 2px;
@@ -1592,6 +1611,10 @@ details[open] .faq-symbol {
   #registration .registration-preview {
     padding: 32px 22px;
     border-radius: 20px;
+  }
+  #registration form.registration-preview {
+    min-height: 540px;
+    padding: 36px 24px;
   }
   #registration .registration-button {
     font-size: 12px;

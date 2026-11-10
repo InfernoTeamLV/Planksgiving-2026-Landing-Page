@@ -29,6 +29,19 @@ const member = buildRegistrationEmail(
 );
 assert.ok(member.text.includes("Complimentary"));
 assert.ok(!member.text.includes("$45"));
+const general = buildRegistrationEmail(
+  { ...registration, membership: null },
+  "client",
+  options
+);
+assert.ok(general.text.includes("holding strong together"));
+assert.ok(!/complimentary|\$45|follow-up/i.test(general.text));
+const generalStaff = buildRegistrationEmail(
+  { ...registration, membership: null },
+  "staff",
+  options
+);
+assert.ok(generalStaff.text.includes("General registration"));
 assert.throws(() => buildRegistrationEmail(registration, "other", options));
 for (const email of [
   "client@example.com,other",

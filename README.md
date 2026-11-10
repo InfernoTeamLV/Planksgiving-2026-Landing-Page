@@ -7,8 +7,9 @@ The page follows the supplied Planksgiving wireframe, with separate Hero, About,
 Registration, and FAQ components in `src/main.tsx` and responsive styles
 in `src/styles.css`. Navigation and FAQ disclosures work without backend access.
 Registration validates contact details and age confirmation, then saves seasonal
-submissions to the TNT Supabase database. Member/guest prices switch locally. Payment
-is collected at the front desk. Saved registrations open a branded confirmation
+submissions to the TNT Supabase database. The current form collects name, email,
+phone and age confirmation, without asking for membership or displaying pricing.
+Saved registrations open a branded confirmation
 dialog and queue confirmation and staff notification emails.
 
 ## Run locally
@@ -55,13 +56,14 @@ report a successful registration.
 
 - `public.tnt_seasonal_forms` holds event settings, prices and the registration cutoff.
 - `public.tnt_seasonal_form_submissions` stores contact details, self-reported
-  membership, age confirmation, creation time and a staff-managed status.
+  optional historical membership, age confirmation, creation time and a staff-managed status.
 - The event key is `planksgiving-2026`. Registration closes November 26, 2026,
   at 7:00 AM Pacific. Only one registration per email per event is accepted.
 - Anonymous visitors can insert the permitted registration fields, but cannot read
   submissions or set administrative status. Authenticated TNT admins with the existing
   `app_metadata.role = admin` claim can read and manage submissions.
-- Membership is self-reported and does not grant account access or prove a paid membership.
+- New registrations leave membership unspecified (null), without assuming member
+  or guest status. Historical self-reported values are retained and grant no access.
 - The migration in `supabase/migrations/20261106211254_tnt_seasonal_form_submissions.sql`
   is also mirrored in the parent TNT checkout. It was applied to TNT and recorded in
   migration history on November 6, 2026.
@@ -152,7 +154,7 @@ time; they are not claimed to be the latest registry releases.
 ### Section review
 
 - `/#about`: compare the community introduction with the supplied reference.
-- `/#registration`: review free member entry, $45 guest entry, required fields,
+- `/#registration`: review contact fields and age confirmation,
   age confirmation, inline errors and the pending/success states. A successful
   submission now writes to TNT.
 - `/#faq`: open and close each answer, including with keyboard Enter/Space.
@@ -219,3 +221,21 @@ the files, and push with `git push -u origin codex/your-change`.
 References: [Vite environment variables](https://vite.dev/guide/env-and-mode),
 [Supabase client initialization](https://supabase.com/docs/reference/javascript/initializing),
 [Vite on Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/vite/).
+
+### Latest verification — November 9, 2026
+
+The production build and registration, database, throttling, email, asset and
+credential checks passed. Compressed JavaScript is 70.9 KiB, compressed CSS is
+6.9 KiB, and the complete uncompressed static build is 1007.5 KiB. The production
+preview served the configured security headers and loaded every page image and font.
+
+Production layouts were checked at 320, 390, 768, 1032 and 1368px widths, with no
+horizontal overflow or browser warnings/errors. The contact-only form is 500×560px
+on tablets/desktop and 540px tall on phones. Three FAQ questions remain. New
+submissions omit membership, save it as null and receive neutral confirmation copy.
+Historical member/guest submissions remain intact.
+
+Website and email-worker dependency audits reported zero known vulnerabilities.
+Public registration reads and mail queue/worker access returned HTTP 401; the
+recipient-injection test returned HTTP 400. The existing Pro-only leaked-password
+protection warning described above remains the sole Supabase advisor finding.

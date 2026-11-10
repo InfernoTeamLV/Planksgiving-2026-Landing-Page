@@ -16,7 +16,6 @@ const valid = {
   fullName: "  Jane   Doe ",
   email: " JANE@example.com ",
   phone: "(702) 555-0123",
-  membership: "guest",
   ageConfirmed: true
 };
 const result = validateRegistration(valid);
@@ -32,14 +31,12 @@ const invalid = validateRegistration({
   fullName: " ",
   email: "bad",
   phone: "hello123",
-  membership: "other",
   ageConfirmed: false
 });
 assert.deepEqual(Object.keys(invalid.errors).sort(), [
   "ageConfirmed",
   "email",
   "fullName",
-  "membership",
   "phone"
 ]);
 assert.ok(validateRegistration({ ...valid, phone: "1234567890123456" }).errors.phone);
@@ -83,7 +80,7 @@ const endpoint = "/api/registrations";
 await submitRegistration(result.value, endpoint, async (url, options) => {
   assert.equal(url, endpoint);
   assert.equal(options.method, "POST");
-  assert.equal(JSON.parse(options.body).membership, "guest");
+  assert.equal(JSON.parse(options.body).membership, undefined);
   return Response.json({ ok: true });
 });
 for (const [status, message] of [

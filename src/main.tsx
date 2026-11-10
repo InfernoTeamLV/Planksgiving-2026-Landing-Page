@@ -22,12 +22,8 @@ const faqs = [
     </>
   ],
   [
-    "How do non-members pay?",
-    "Non-members pay upon arrival. The $45 entry includes the Planksgiving challenge and the 7:30 IHP class."
-  ],
-  [
-    "Will someone contact me after I register?",
-    "Members will not be contacted after registering. Non-members: upon submitting a registration form, a team member will reach out to you shortly."
+    "What to bring?",
+    "Bring a mat, a towel, and a water bottle to stay hydrated. Come ready to hold strong with your Inferno community."
   ]
 ];
 
@@ -102,11 +98,7 @@ function Header() {
           height="104"
         />
       </a>
-      <nav
-        id="navigation"
-        className="navigation"
-        aria-label="Main navigation"
-      >
+      <nav id="navigation" className="navigation" aria-label="Main navigation">
         <a href="#about">About</a>
         <a href="#faq">FAQ</a>
         <a className="button small" href="#registration">
@@ -148,9 +140,10 @@ function Hero() {
           </div>
           <div>
             <EventIcon type="location" />
-            <span>
-              Inferno Lobby ·<br />
-              Las Vegas
+            <span className="event-location">
+              9130 W Russell Rd #110
+              <br />
+              Las Vegas, NV 89148
             </span>
           </div>
         </div>
@@ -211,13 +204,7 @@ function About() {
   );
 }
 
-function RegistrationConfirmation({
-  membership,
-  onClose
-}: {
-  membership: "member" | "guest";
-  onClose: () => void;
-}) {
+function RegistrationConfirmation({ onClose }: { onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (dialog.current && !dialog.current.open) dialog.current.showModal();
@@ -269,14 +256,10 @@ function RegistrationConfirmation({
         <EventIcon type="calendar" />
         <div>
           <strong>Thursday, November 26 · 7:00 AM</strong>
-          <span>Inferno Lobby · Las Vegas</span>
+          <span>9130 W Russell Rd #110 · Las Vegas, NV 89148</span>
         </div>
       </div>
-      <p className="confirmation-entry">
-        {membership === "member"
-          ? "Your member entry is complimentary. We’ll see you there."
-          : "Your $45 guest entry is payable at the front desk upon arrival. Our team will reach out to finalize your class spot."}
-      </p>
+      <p className="confirmation-entry">We look forward to holding strong together.</p>
       <button type="button" className="button" onClick={() => dialog.current?.close()}>
         LET’S HOLD STRONG
       </button>
@@ -286,7 +269,6 @@ function RegistrationConfirmation({
 }
 
 function Registration() {
-  const [membership, setMembership] = useState<"member" | "guest">("member");
   const [errors, setErrors] = useState<RegistrationErrors>({});
   const [submissionError, setSubmissionError] = useState("");
   const [pending, setPending] = useState(false);
@@ -296,7 +278,7 @@ function Registration() {
     fullName: "full-name",
     email: "email",
     phone: "phone",
-    membership: "member-choice",
+
     ageConfirmed: "age-confirmation"
   };
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -307,7 +289,7 @@ function Registration() {
       fullName: String(fields.get("fullName") ?? ""),
       email: String(fields.get("email") ?? ""),
       phone: String(fields.get("phone") ?? ""),
-      membership,
+
       ageConfirmed: fields.get("ageConfirmed") === "on"
     });
     setErrors(nextErrors);
@@ -317,7 +299,7 @@ function Registration() {
         fullName: "full-name",
         email: "email",
         phone: "phone",
-        membership: "member-choice",
+
         ageConfirmed: "age-confirmation"
       };
       document
@@ -368,11 +350,7 @@ function Registration() {
             <p className="eyebrow">YOU’RE REGISTERED</p>
             <h3>See you at Planksgiving.</h3>
             <p>Your registration has been saved for November 26 at 7:00 AM.</p>
-            <p>
-              {membership === "guest"
-                ? "Please pay $45 at the front desk upon arrival. Our team will reach out to finalize your class spot."
-                : "Your entry is complimentary. We look forward to seeing you there."}
-            </p>
+            <p>We look forward to holding strong together.</p>
             <button
               type="button"
               className="button confirmation-reopen"
@@ -398,7 +376,7 @@ function Registration() {
                   fullName: String(fields.get("fullName") ?? ""),
                   email: String(fields.get("email") ?? ""),
                   phone: String(fields.get("phone") ?? ""),
-                  membership,
+
                   ageConfirmed: fields.get("ageConfirmed") === "on"
                 });
                 setErrors((previous) => ({
@@ -487,58 +465,6 @@ function Registration() {
                 placeholder="(702) 555-0123"
                 autoComplete="tel"
               />
-              <fieldset className="member-options">
-                <legend>
-                  Are you an Inferno member? <span>*</span>
-                </legend>
-                <label>
-                  <input
-                    type="radio"
-                    id="member-choice"
-                    name="membership"
-                    value="member"
-                    checked={membership === "member"}
-                    onChange={() => setMembership("member")}
-                    aria-controls="entry-summary"
-                  />
-                  Yes, I’m an Inferno member
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="membership"
-                    value="guest"
-                    checked={membership === "guest"}
-                    onChange={() => setMembership("guest")}
-                    aria-controls="entry-summary"
-                  />
-                  No, I’m joining as a guest
-                </label>
-              </fieldset>
-              <div
-                id="entry-summary"
-                className="entry-summary"
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-                hidden={!membership}
-              >
-                {membership && (
-                  <div className="price-card" key={membership}>
-                    <div>
-                      <h3>
-                        {membership === "member" ? "MEMBER ENTRY" : "GUEST ENTRY"}
-                      </h3>
-                      <strong>{membership === "member" ? "FREE" : "$45"}</strong>
-                    </div>
-                    <p>
-                      {membership === "member"
-                        ? "Your Planksgiving registration is complimentary. Come ready to hold strong with your Inferno community."
-                        : "Includes the Planksgiving challenge, an IHP class, and a TNT session. Pay at the front desk upon arrival. Our team will reach out to finalize your class spot."}
-                    </p>
-                  </div>
-                )}
-              </div>
               <label className="age-option">
                 <input
                   type="checkbox"
@@ -564,10 +490,7 @@ function Registration() {
         )}
       </div>
       {showConfirmation && (
-        <RegistrationConfirmation
-          membership={membership}
-          onClose={() => setShowConfirmation(false)}
-        />
+        <RegistrationConfirmation onClose={() => setShowConfirmation(false)} />
       )}
     </section>
   );
