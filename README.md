@@ -113,6 +113,13 @@ an `uncertain` job; first confirm the message was not already sent.
 
 ## Build and deploy to Netlify
 
+Deployment accounts:
+
+- GitHub repository: `InfernoTeamLV/Planksgiving-2026-Landing-Page`.
+- Netlify project: `infernoplanksgiving2026`, in Monica’s `monica-hd9w0m0` team.
+- Future commits and Git pushes from this checkout use the repository-local
+  `InfernoTeamLV` identity. Existing commit history is preserved.
+
 ```powershell
 npm run build
 npm run preview
